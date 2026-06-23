@@ -15,9 +15,7 @@ ALLOWED_HOSTS = env.list("DJANGO_ALLOWED_HOSTS", default=["*"])
 SHARED_APPS = [
     "django_tenants",
     "apps.tenants",
-]
-
-TENANT_APPS = [
+    "apps.accounts",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -25,6 +23,12 @@ TENANT_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "rest_framework",
+]
+
+TENANT_APPS = [
+    # Required by django-tenants.
+    # Real tenant-specific business apps will be added here later.
+    "django.contrib.contenttypes",
 ]
 
 INSTALLED_APPS = SHARED_APPS + [
@@ -89,3 +93,4 @@ TENANT_MODEL = "tenants.Client"
 TENANT_DOMAIN_MODEL = "tenants.Domain"
 
 PUBLIC_SCHEMA_NAME = "public"
+AUTH_USER_MODEL = "accounts.User"
