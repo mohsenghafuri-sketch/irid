@@ -1,98 +1,38 @@
-# =========================
-# OS / Editor
-# =========================
-.DS_Store
-Thumbs.db
-*.swp
-*.swo
-.vscode/
-.idea/
-
-# =========================
-# Python / Django
-# =========================
+# Python
 __pycache__/
 *.py[cod]
-*.pyo
-*.pyd
-.Python
-*.sqlite3
-*.sqlite3-journal
-.pytest_cache/
-.mypy_cache/
-.ruff_cache/
-.coverage
-htmlcov/
-dist/
-build/
-*.egg-info/
+*$py.class
+.venv/
+venv/
+ENV/
 
-# =========================
-# Environment / Secrets
-# =========================
-.env
-.env.*
-!.env.example
-*.pem
-*.key
-*.crt
-*.p12
-*.pfx
-secrets/
-secret/
-private/
-
-# =========================
-# Django generated files
-# =========================
-staticfiles/
-media/
-uploads/
-logs/
+# Django
 *.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+media/
+staticfiles/
+.env
 
-# =========================
-# Node / Frontend
-# =========================
+# Backend specific
+backend/.env
+backend/static/
+backend/media/
+
+# Frontend / Node
 node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
 .next/
-.nuxt/
 dist/
 build/
-coverage/
+.npm
+npm-debug.log*
 
-# =========================
-# Docker / Runtime volumes
-# =========================
+# Docker & OS
+.DS_Store
 docker-data/
-data/
-volumes/
-tmp/
-*.pid
-
-# =========================
-# PostgreSQL / Redis / MinIO local data
-# =========================
 postgres-data/
 redis-data/
-minio-data/
-infrastructure/postgres/data/
-infrastructure/redis/data/
-infrastructure/minio/data/
-.infrastructure-data/
-
-# =========================
-# Backup / Dumps
-# =========================
-*.dump
-*.sql
-*.sql.gz
-*.bak
-*.backup
-*.tar
-*.tar.gz
-*.zip
+.idea/
+.vscode/
+*.swp

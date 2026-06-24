@@ -38,15 +38,25 @@ SHARED_APPS = [
 ]
 
 TENANT_APPS = [
-    # Required by django-tenants.
-    # Real tenant-specific business apps will be added here later.
+    # Django apps needed in tenant schemas
     "django.contrib.contenttypes",
+    "django.contrib.auth",
+    "django.contrib.sessions",
+    "django.contrib.messages",
+    "django.contrib.staticfiles",
+
+    # Tenant business apps
+    "apps.accounts",
+    "apps.correspondence",
+    "apps.forms",
+    "apps.workflow",
+    "apps.requests",
 ]
 
-INSTALLED_APPS = SHARED_APPS + [
-    app for app in TENANT_APPS if app not in SHARED_APPS
-]
+INSTALLED_APPS = SHARED_APPS + [app for app in TENANT_APPS if app not in SHARED_APPS]
 
+
+# در فایل backend/config/settings/base.
 MIDDLEWARE = [
     "django_tenants.middleware.main.TenantMainMiddleware",
     "django.middleware.security.SecurityMiddleware",
@@ -57,6 +67,7 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
+
 
 ROOT_URLCONF = "config.urls"
 
@@ -109,3 +120,18 @@ PUBLIC_SCHEMA_URLCONF = 'config.urls'
 
 PUBLIC_SCHEMA_NAME = "public"
 AUTH_USER_MODEL = "accounts.User"
+
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:8000",
+    "http://127.0.0.1:8000",
+    "http://irid.localhost:8000",
+    "http://192.168.10.85:8000",
+    "http://192.168.10.85:5173",  # اضافه کردن آدرس فرانت‌اند
+]
+
+# همچنین مطمئن شو CORS هم این مورد را پوشش می‌دهد
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:8000",
+    "http://192.168.10.85:8000",
+    "http://192.168.10.85:5173",  # اضافه کردن آدرس فرانت‌اند
+]

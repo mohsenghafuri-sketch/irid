@@ -1,0 +1,37 @@
+from django.db import models
+from django.conf import settings
+
+class Request(models.Model):
+    form = models.ForeignKey('forms.FormDefinition', on_delete=models.PROTECT)
+    creator = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
+    data = models.JSONField(default=dict)
+    current_state = models.ForeignKey('workflow.State', on_delete=models.PROTECT)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Request {self.id} - {self.form.title} ({self.current_state.name})"
+
+class Task(models.Model):
+    request = models.ForeignKey(Request, on_delete=models.CASCADE, related_name='tasks')
+    assignee = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    state = models.ForeignKey('workflow.State', on_delete=models.CASCADE)
+    is_completed = models.BooleanField(default=False)
+    completed_at = models.DateTimeField(null=True, blank=True)
+    comment = models.TextField(blank=True, null=True)
+
+    def __str__(self):
+        return f"Task for {self.assignee.username} on {self.request}"
+
+class RequestTransitionLog(models.Model):
+    request = models.ForeignKey(Request, on_delete=models.CASCADE, related_name='transition_logs')
+    transition = models.ForeignKey('workflow.Transition', on_delete=models.PROTECT)
+    from_state = models.ForeignKey('workflow.State', on_delete=models.PROTECT, related_name='+')
+    to_state = models.ForeignKey('workflow.State', on_delete=models.PROTECT, related_name='+')
+    performed_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
+    comment = models.TextField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
