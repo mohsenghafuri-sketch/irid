@@ -1,39 +1,31 @@
 from django.db import models
 from django.conf import settings
+from apps.forms.models import FormVersion
+from apps.workflow.models import State
 
 class Request(models.Model):
-    form = models.ForeignKey('forms.FormDefinition', on_delete=models.PROTECT)
-    creator = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
-    data = models.JSONField(default=dict)
-    current_state = models.ForeignKey('workflow.State', on_delete=models.PROTECT)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name='requests')
+    form_version = models.ForeignKey(FormVersion, on_delete=models.PROTECT)
+    
+    # اتصال به موتور گردش کار
+    current_state = models.ForeignKey(State, on_delete=models.PROTECT, null=True, blank=True, related_name='current_requests')
+    
+    tracking_code = models.CharField(max_length=50, unique=True, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"Request {self.id} - {self.form.title} ({self.current_state.name})"
+        return f"Request {self.id} - {self.current_state.name if self.current_state else 'No State'}"
 
-class Task(models.Model):
-    request = models.ForeignKey(Request, on_delete=models.CASCADE, related_name='tasks')
-    assignee = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    state = models.ForeignKey('workflow.State', on_delete=models.CASCADE)
-    is_completed = models.BooleanField(default=False)
-    completed_at = models.DateTimeField(null=True, blank=True)
-    comment = models.TextField(blank=True, null=True)
+class RequestValue(models.Model):
+    request = models.OneToOneField(Request, on_delete=models.CASCADE, related_name='data')
+    values = models.JSONField(default=dict)
 
-    def __str__(self):
-        return f"Task for {self.assignee.username} on {self.request_id}"
-
-class RequestTransitionLog(models.Model):
-    request = models.ForeignKey(Request, on_delete=models.CASCADE, related_name='transition_logs')
-    transition = models.ForeignKey('workflow.Transition', on_delete=models.PROTECT)
-    from_state = models.ForeignKey('workflow.State', on_delete=models.PROTECT, related_name='+')
-    to_state = models.ForeignKey('workflow.State', on_delete=models.PROTECT, related_name='+')
-    performed_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
-    comment = models.TextField(blank=True, null=True)
+class RequestHistory(models.Model):
+    request = models.ForeignKey(Request, on_delete=models.CASCADE, related_name='history')
+    from_state = models.ForeignKey(State, on_delete=models.SET_NULL, null=True, related_name='+')
+    to_state = models.ForeignKey(State, on_delete=models.SET_NULL, null=True, related_name='+')
+    performed_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
+    comment = models.TextField(blank=True)
+    action_name = models.CharField(max_length=100)
     created_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        ordering = ['-created_at']
-
-    def __str__(self):
-        return f"Log {self.id}: {self.from_state.name} -> {self.to_state.name}"

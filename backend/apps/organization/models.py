@@ -13,8 +13,6 @@ class Department(models.Model):
     code = models.CharField(max_length=50, unique=True)
 
     def __str__(self):
-        if self.parent:
-            return f"{self.parent.name} -> {self.name}"
         return self.name
 
 class Position(models.Model):
@@ -22,11 +20,19 @@ class Position(models.Model):
     level = models.IntegerField(default=1)
 
     def __str__(self):
-        return f"{self.title} (L{self.level})"
+        return self.title
 
 class JobTitle(models.Model):
-    department = models.ForeignKey(Department, on_delete=models.CASCADE, related_name='job_titles')
-    position = models.ForeignKey(Position, on_delete=models.CASCADE, related_name='job_titles')
+    department = models.ForeignKey(
+        Department, 
+        on_delete=models.CASCADE, 
+        related_name='job_titles'
+    )
+    position = models.ForeignKey(
+        Position, 
+        on_delete=models.CASCADE, 
+        related_name='job_titles'
+    )
     superior = models.ForeignKey(
         'self', 
         on_delete=models.SET_NULL, 
@@ -47,12 +53,15 @@ class UserAssignment(models.Model):
         on_delete=models.CASCADE, 
         related_name='assignments'
     )
-    job_title = models.ForeignKey(JobTitle, on_delete=models.CASCADE, related_name='user_assignments')
+    job_title = models.ForeignKey(
+        JobTitle, 
+        on_delete=models.CASCADE
+    )
     is_primary = models.BooleanField(default=True)
 
     class Meta:
         unique_together = ('user', 'job_title')
 
     def __str__(self):
-        username = self.user.get_full_name() or self.user.username
-        return f"{username} as {self.job_title}"
+        user_display = getattr(self.user, 'full_name', None) or self.user.email
+        return f"{user_display} as {self.job_title}"

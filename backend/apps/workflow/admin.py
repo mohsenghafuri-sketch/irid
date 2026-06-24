@@ -12,8 +12,15 @@ class TransitionInline(admin.TabularInline):
 
 @admin.register(Workflow)
 class WorkflowAdmin(admin.ModelAdmin):
-    list_display = ('name', 'form')
+    list_display = ('name', 'code', 'is_active', 'created_at')
     inlines = [StateInline, TransitionInline]
 
-admin.site.register(State)
-admin.site.register(Transition)
+@admin.register(State)
+class StateAdmin(admin.ModelAdmin):
+    list_display = ('name', 'code', 'workflow', 'is_initial', 'is_final')
+    list_filter = ('workflow', 'is_initial', 'is_final')
+
+@admin.register(Transition)
+class TransitionAdmin(admin.ModelAdmin):
+    list_display = ('name', 'workflow', 'from_state', 'to_state', 'assignment_type')
+    list_filter = ('workflow', 'assignment_type')

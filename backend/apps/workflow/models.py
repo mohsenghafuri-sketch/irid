@@ -1,28 +1,44 @@
 from django.db import models
 
 class Workflow(models.Model):
-    name = models.CharField(max_length=100, verbose_name="نام فرایند")
-    form = models.OneToOneField('forms.FormDefinition', on_delete=models.CASCADE, related_name='workflow')
-    
-    class Meta:
-        verbose_name = "گردش کار"
-        verbose_name_plural = "گردش کارها"
+    name = models.CharField(max_length=255, verbose_name="نام گردش کار")
+    code = models.SlugField(max_length=100, unique=True, verbose_name="کد سیستم")
+    description = models.TextField(blank=True, verbose_name="توضیحات")
+    is_active = models.BooleanField(default=True, verbose_name="فعال")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.name
 
 class State(models.Model):
     workflow = models.ForeignKey(Workflow, on_delete=models.CASCADE, related_name='states')
-    name = models.CharField(max_length=100, verbose_name="نام مرحله")
-    is_initial = models.BooleanField(default=False)
-    is_final = models.BooleanField(default=False)
+    name = models.CharField(max_length=100, verbose_name="نام وضعیت")
+    code = models.SlugField(max_length=100, verbose_name="کد وضعیت")
+    is_initial = models.BooleanField(default=False, verbose_name="وضعیت شروع")
+    is_final = models.BooleanField(default=False, verbose_name="وضعیت نهایی")
+
+    class Meta:
+        unique_together = ('workflow', 'code')
 
     def __str__(self):
         return f"{self.workflow.name} -> {self.name}"
 
 class Transition(models.Model):
+    ASSIGNMENT_TYPES = (
+        ('DIRECT_MANAGER', 'مدیر مستقیم درخواست‌کننده'),
+        ('SPECIFIC_USER', 'کاربر مشخص'),
+        ('ROLE', 'نقش سیستمی (مثلاً مدیر مالی)'),
+        ('CREATOR', 'خود درخواست‌کننده'),
+    )
+
     workflow = models.ForeignKey(Workflow, on_delete=models.CASCADE, related_name='transitions')
-    from_state = models.ForeignKey(State, on_delete=models.CASCADE, related_name='outgoing')
-    to_state = models.ForeignKey(State, on_delete=models.CASCADE, related_name='incoming')
-    label = models.CharField(max_length=100, verbose_name="عملیات")
-    permission_required = models.CharField(max_length=100, blank=True)
+    name = models.CharField(max_length=100, verbose_name="نام عملیات")
+    from_state = models.ForeignKey(State, on_delete=models.CASCADE, related_name='out_transitions')
+    to_state = models.ForeignKey(State, on_delete=models.CASCADE, related_name='in_transitions')
+    
+    assignment_type = models.CharField(max_length=50, choices=ASSIGNMENT_TYPES, default='DIRECT_MANAGER')
+    # فیلد کمکی برای نقش‌ها یا کاربران خاص
+    assignment_data = models.CharField(max_length=255, null=True, blank=True, help_text="ID کاربر یا کد نقش")
 
     def __str__(self):
-        return f"{self.label}: {self.from_state.name} -> {self.to_state.name}"
+        return f"{self.name} ({self.from_state.name} -> {self.to_state.name})"
