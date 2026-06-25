@@ -6,6 +6,7 @@ from django.conf.urls.static import static
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/auth/', include('apps.accounts.api.urls')),
+    path('api/workflow/', include('apps.workflow.api.urls')),
     path('api/correspondence/', include('apps.correspondence.urls')),
 ]
 
