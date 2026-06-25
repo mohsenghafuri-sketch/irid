@@ -1,0 +1,277 @@
+from django.contrib.auth import get_user_model
+
+from apps.organization.models import Department, Position, JobTitle, UserAssignment
+from apps.forms.models import FormDefinition, FormVersion
+from apps.workflow.models import Workflow, State, Transition
+from apps.requests.models import Request, RequestValue, RequestHistory
+from apps.workflow.services import start_request, execute_transition, get_available_transitions
+
+
+def run():
+    print("--- starting workflow integration test ---")
+
+    User = get_user_model()
+
+    # users - custom user model has no username field
+    ceo_user, _ = User.objects.get_or_create(
+        email="ceo@irid.ir",
+        defaults={"full_name": "CEO User", "first_name": "CEO", "is_active": True},
+    )
+    manager_user, _ = User.objects.get_or_create(
+        email="manager@irid.ir",
+        defaults={"full_name": "IT Manager User", "first_name": "Manager", "is_active": True},
+    )
+    finance_user, _ = User.objects.get_or_create(
+        email="finance@irid.ir",
+        defaults={"full_name": "Finance Head User", "first_name": "Finance", "is_active": True},
+    )
+    employee_user, _ = User.objects.get_or_create(
+        email="emp@irid.ir",
+        defaults={"full_name": "Employee User", "first_name": "Employee", "is_active": True},
+    )
+
+    print("users ready")
+
+    # departments
+    finance_dept, _ = Department.objects.get_or_create(
+        code="FIN",
+        defaults={"name": "Finance Department", "parent": None},
+    )
+    it_dept, _ = Department.objects.get_or_create(
+        code="IT",
+        defaults={"name": "IT Department", "parent": None},
+    )
+
+    print("departments ready")
+
+    # positions - Position has only title and level
+    ceo_position, _ = Position.objects.get_or_create(
+        title="CEO",
+        defaults={"level": 1},
+    )
+    manager_position, _ = Position.objects.get_or_create(
+        title="IT Manager",
+        defaults={"level": 2},
+    )
+    finance_manager_position, _ = Position.objects.get_or_create(
+        title="Finance Manager",
+        defaults={"level": 2},
+    )
+    developer_position, _ = Position.objects.get_or_create(
+        title="Developer",
+        defaults={"level": 3},
+    )
+
+    print("positions ready")
+
+    # job titles - department belongs here, not on Position
+    ceo_job, _ = JobTitle.objects.get_or_create(
+        department=it_dept,
+        position=ceo_position,
+        defaults={"superior": None},
+    )
+
+    manager_job, _ = JobTitle.objects.get_or_create(
+        department=it_dept,
+        position=manager_position,
+        defaults={"superior": ceo_job},
+    )
+    if manager_job.superior_id != ceo_job.id:
+        manager_job.superior = ceo_job
+        manager_job.save(update_fields=["superior"])
+
+    finance_job, _ = JobTitle.objects.get_or_create(
+        department=finance_dept,
+        position=finance_manager_position,
+        defaults={"superior": ceo_job},
+    )
+    if finance_job.superior_id != ceo_job.id:
+        finance_job.superior = ceo_job
+        finance_job.save(update_fields=["superior"])
+
+    developer_job, _ = JobTitle.objects.get_or_create(
+        department=it_dept,
+        position=developer_position,
+        defaults={"superior": manager_job},
+    )
+    if developer_job.superior_id != manager_job.id:
+        developer_job.superior = manager_job
+        developer_job.save(update_fields=["superior"])
+
+    print("job titles ready")
+
+    # user assignments
+    UserAssignment.objects.get_or_create(
+        user=ceo_user,
+        job_title=ceo_job,
+        defaults={"is_primary": True},
+    )
+    UserAssignment.objects.get_or_create(
+        user=manager_user,
+        job_title=manager_job,
+        defaults={"is_primary": True},
+    )
+    UserAssignment.objects.get_or_create(
+        user=finance_user,
+        job_title=finance_job,
+        defaults={"is_primary": True},
+    )
+    UserAssignment.objects.get_or_create(
+        user=employee_user,
+        job_title=developer_job,
+        defaults={"is_primary": True},
+    )
+
+    print("user assignments ready")
+
+    # workflow
+    workflow, _ = Workflow.objects.get_or_create(
+        code="LOAN_WORKFLOW",
+        defaults={
+            "name": "Loan Workflow",
+            "description": "Loan request approval workflow",
+            "is_active": True,
+        },
+    )
+
+    draft_state, _ = State.objects.get_or_create(
+        workflow=workflow,
+        code="DRAFT",
+        defaults={"name": "Draft", "is_initial": True, "is_final": False},
+    )
+    manager_review_state, _ = State.objects.get_or_create(
+        workflow=workflow,
+        code="MANAGER_REVIEW",
+        defaults={"name": "Manager Review", "is_initial": False, "is_final": False},
+    )
+    finance_review_state, _ = State.objects.get_or_create(
+        workflow=workflow,
+        code="FINANCE_REVIEW",
+        defaults={"name": "Finance Review", "is_initial": False, "is_final": False},
+    )
+    approved_state, _ = State.objects.get_or_create(
+        workflow=workflow,
+        code="APPROVED",
+        defaults={"name": "Approved", "is_initial": False, "is_final": True},
+    )
+
+    print("states ready")
+
+    submit_transition, _ = Transition.objects.get_or_create(
+        workflow=workflow,
+        name="Submit",
+        from_state=draft_state,
+        to_state=manager_review_state,
+        defaults={
+            "assignment_type": "DIRECT_MANAGER",
+            "assignment_data": {},
+        },
+    )
+
+    manager_approve_transition, _ = Transition.objects.get_or_create(
+        workflow=workflow,
+        name="Manager Approve",
+        from_state=manager_review_state,
+        to_state=finance_review_state,
+        defaults={
+            "assignment_type": "ROLE",
+            "assignment_data": {"position_title": "Finance Manager"},
+        },
+    )
+
+    finance_approve_transition, _ = Transition.objects.get_or_create(
+        workflow=workflow,
+        name="Finance Approve",
+        from_state=finance_review_state,
+        to_state=approved_state,
+        defaults={
+            "assignment_type": "CREATOR",
+            "assignment_data": {},
+        },
+    )
+
+    print("transitions ready")
+
+    # form
+    form_definition, _ = FormDefinition.objects.get_or_create(
+        slug="loan-request",
+        defaults={
+            "name": "Loan Request",
+            "description": "Loan request test form",
+            "is_active": True,
+        },
+    )
+
+    form_version, _ = FormVersion.objects.get_or_create(
+        form_definition=form_definition,
+        version_number=1,
+        defaults={"is_published": True},
+    )
+
+    print("form ready")
+
+    # request
+    request_obj = Request.objects.create(
+        user=employee_user,
+        form_version=form_version,
+    )
+
+    RequestValue.objects.create(
+        request=request_obj,
+        data={
+            "amount": 1000000,
+            "reason": "Workflow integration test",
+        },
+    )
+
+    print("request created:", request_obj.id)
+
+    # start workflow
+    start_request(request_obj, workflow)
+    request_obj.refresh_from_db()
+    print("after start:", request_obj.current_state.code)
+
+    available = list(get_available_transitions(request_obj))
+    print("available after start:", [(t.name, t.from_state.code, t.to_state.code) for t in available])
+
+    # submit: Draft -> Manager Review
+    execute_transition(
+        request_obj=request_obj,
+        transition=submit_transition,
+        performed_by=employee_user,
+        comment="Employee submitted request",
+    )
+    request_obj.refresh_from_db()
+    print("after submit:", request_obj.current_state.code)
+
+    # manager approve: Manager Review -> Finance Review
+    execute_transition(
+        request_obj=request_obj,
+        transition=manager_approve_transition,
+        performed_by=manager_user,
+        comment="Manager approved request",
+    )
+    request_obj.refresh_from_db()
+    print("after manager approve:", request_obj.current_state.code)
+
+    # finance approve: Finance Review -> Approved
+    execute_transition(
+        request_obj=request_obj,
+        transition=finance_approve_transition,
+        performed_by=finance_user,
+        comment="Finance approved request",
+    )
+    request_obj.refresh_from_db()
+    print("after finance approve:", request_obj.current_state.code)
+
+    print("--- request history ---")
+    for h in RequestHistory.objects.filter(request=request_obj).order_by("created_at"):
+        print(
+            h.id,
+            "from=", getattr(h.from_state, "code", None),
+            "to=", getattr(h.to_state, "code", None),
+            "by=", getattr(h.performed_by, "email", None),
+            "comment=", h.comment,
+        )
+
+    print("--- workflow integration test finished successfully ---")
