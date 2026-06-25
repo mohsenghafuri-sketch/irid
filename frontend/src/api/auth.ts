@@ -1,70 +1,45 @@
+import axios from "axios";
 import { getCsrfToken } from "./csrf";
 
-export type AuthUser = {
+export interface LoginPayload {
+  email: string;
+  password: string;
+}
+
+export interface AuthUser {
   id: number;
   email: string;
-  full_name: string;
-  is_staff: boolean;
-  is_superuser: boolean;
-};
+  first_name?: string;
+  last_name?: string;
+}
 
-export type AuthState = {
-  authenticated: boolean;
-  user: AuthUser | null;
-};
+// تنظیمات سراسری اکسیس برای ارسال کوکی‌ها
+axios.defaults.withCredentials = true;
 
-const jsonHeaders = {
-  "Content-Type": "application/json",
-};
+// ایجاد یک اینستنس سفارشی برای تزریق خودکار توکن CSRF در هدرها
+const api = axios.create({
+  baseURL: "/api"
+});
 
-async function parseJsonResponse<T>(response: Response): Promise<T> {
-  const data = await response.json().catch(() => null);
-
-  if (!response.ok) {
-    const message =
-      data?.detail ||
-      data?.non_field_errors?.[0] ||
-      data?.email?.[0] ||
-      data?.password?.[0] ||
-      "درخواست ناموفق بود.";
-
-    throw new Error(message);
+api.interceptors.request.use((config) => {
+  const token = getCsrfToken();
+  if (token) {
+    config.headers["X-CSRFToken"] = token;
   }
+  return config;
+});
 
-  return data as T;
-}
+export const login = async (payload: LoginPayload) => {
+  const response = await api.post("/accounts/login/", payload);
+  return response.data;
+};
 
-export async function getMe(): Promise<AuthState> {
-  const response = await fetch("/api/auth/me/", {
-    method: "GET",
-    credentials: "include",
-  });
+export const logout = async () => {
+  const response = await api.post("/accounts/logout/");
+  return response.data;
+};
 
-  return parseJsonResponse<AuthState>(response);
-}
-
-export async function login(email: string, password: string): Promise<AuthState> {
-  const response = await fetch("/api/auth/login/", {
-    method: "POST",
-    credentials: "include",
-    headers: jsonHeaders,
-    body: JSON.stringify({ email, password }),
-  });
-
-  return parseJsonResponse<AuthState>(response);
-}
-
-export async function logout(): Promise<AuthState> {
-  const csrfToken = getCsrfToken();
-
-  const response = await fetch("/api/auth/logout/", {
-    method: "POST",
-    credentials: "include",
-    headers: {
-      ...jsonHeaders,
-      ...(csrfToken ? { "X-CSRFToken": csrfToken } : {}),
-    },
-  });
-
-  return parseJsonResponse<AuthState>(response);
-}
+export const getMe = async (): Promise<AuthUser> => {
+  const response = await api.get("/accounts/me/");
+  return response.data;
+};

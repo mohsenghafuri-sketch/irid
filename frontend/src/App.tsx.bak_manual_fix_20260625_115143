@@ -1,0 +1,110 @@
+import React, { useEffect, useState } from 'react';
+import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
+import { getMe, logout } from './api/auth';
+import InboxPage from './pages/InboxPage';
+
+const App: React.FC = () => {
+  const [auth, setAuth] = useState({ authenticated: false, user: null as any });
+  const [loading, setLoading] = useState(true);
+
+  const refreshAuth = async () => {
+    try {
+      const data = await getMe();
+      setAuth({ authenticated: true, user: data });
+    } catch {
+      setAuth({ authenticated: false, user: null });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    refreshAuth();
+  }, []);
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      setAuth({ authenticated: false, user: null });
+      window.location.href = '/';
+    } catch (err) {
+      console.error('Logout failed', err);
+    }
+  };
+
+  if (loading) return <div style={{ padding: '20px', textAlign: 'center', fontFamily: 'Tahoma' }}>در حال بارگذاری سیستم...</div>;
+
+  return (
+    <Router>
+      <div style={{ minHeight: '100vh', backgroundColor: '#f4f7f6', direction: 'rtl', fontFamily: 'Tahoma' }}>
+        {/* Navbar */}
+        <nav style={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          padding: '10px 30px', 
+          backgroundColor: '#2c3e50', 
+          color: 'white',
+          alignItems: 'center',
+          boxShadow: '0 2px 5px rgba(0,0,0,0.1)'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center' }}>
+            <strong style={{ marginLeft: '30px', fontSize: '1.2rem' }}>اتوماسیون IRID</strong>
+            <Link to="/" style={{ color: 'white', marginLeft: '20px', textDecoration: 'none' }}>داشبورد</Link>
+            <Link to="/inbox" style={{ color: 'white', marginLeft: '20px', textDecoration: 'none' }}>کارتابل</Link>
+          </div>
+          
+          {auth.authenticated ? (
+            <div style={{ display: 'flex', alignItems: 'center' }}>
+              <span style={{ marginLeft: '15px', fontSize: '0.9rem' }}>کاربر: {auth.user?.email}</span>
+              <button onClick={handleLogout} style={{ 
+                backgroundColor: '#e74c3c', 
+                color: 'white', 
+                border: 'none', 
+                padding: '6px 15px', 
+                cursor: 'pointer',
+                borderRadius: '4px',
+                fontWeight: 'bold'
+              }}>خروج</button>
+            </div>
+          ) : (
+            <div style={{ color: '#bdc3c7' }}>وارد نشده‌اید</div>
+          )}
+        </nav>
+
+        {/* Content Container */}
+        <div style={{ padding: '30px', maxWidth: '1200px', margin: '0 auto' }}>
+          <Routes>
+            <Route path="/" element={
+              auth.authenticated ? 
+              (<div style={{ backgroundColor: 'white', padding: '25px', borderRadius: '8px', boxShadow: '0 2px 10px rgba(0,0,0,0.05)' }}>
+                <h2>خوش آمدید، {auth.user?.first_name || 'محسن'} عزیز</h2>
+                <p>امروز {new Date().toLocaleDateString('fa-IR')} است. لیست کارهای معوقه در کارتابل منتظر شماست.</p>
+                <hr style={{ margin: '20px 0', opacity: 0.2 }} />
+                <Link to="/inbox">
+                  <button style={{ 
+                    padding: '12px 25px', 
+                    backgroundColor: '#3498db', 
+                    color: 'white', 
+                    border: 'none', 
+                    borderRadius: '5px', 
+                    cursor: 'pointer',
+                    fontSize: '1rem'
+                  }}>ورود به کارتابل</button>
+                </Link>
+              </div>) : 
+              (<div style={{ textAlign: 'center', marginTop: '50px' }}>
+                <h2 style={{ color: '#c0392b' }}>دسترسی محدود</h2>
+                <p>برای استفاده از امکانات اتوماسیون، ابتدا باید در سیستم احراز هویت شوید.</p>
+                <a href=\"http://irid.localhost:8000/admin\" style={{ color: '#3498db', textDecoration: 'none', fontWeight: 'bold' }}>ورود از طریق پنل مدیریت</a>
+              </div>)
+            } />
+            <Route path="/inbox" element={<InboxPage />} />
+          </Routes>
+        </div>
+      </div>
+    </Router>
+  );
+};
+
+export default App;
+EOF"
