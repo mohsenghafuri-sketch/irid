@@ -1,5 +1,5 @@
 import axios from "axios";
-import { getCsrfToken } from "./csrf";
+import { ensureCsrfCookie } from "./csrf";
 
 export interface LoginPayload {
   email: string;
@@ -13,33 +13,21 @@ export interface AuthUser {
   last_name?: string;
 }
 
-// تنظیمات سراسری اکسیس برای ارسال کوکی‌ها
 axios.defaults.withCredentials = true;
 
-// ایجاد یک اینستنس سفارشی برای تزریق خودکار توکن CSRF در هدرها
-const api = axios.create({
-  baseURL: "/api"
-});
-
-api.interceptors.request.use((config) => {
-  const token = getCsrfToken();
-  if (token) {
-    config.headers["X-CSRFToken"] = token;
-  }
-  return config;
-});
-
 export const login = async (payload: LoginPayload) => {
-  const response = await api.post("/accounts/login/", payload);
+  await ensureCsrfCookie();
+  const response = await axios.post("/api/accounts/login/", payload);
   return response.data;
 };
 
 export const logout = async () => {
-  const response = await api.post("/accounts/logout/");
+  await ensureCsrfCookie();
+  const response = await axios.post("/api/accounts/logout/");
   return response.data;
 };
 
 export const getMe = async (): Promise<AuthUser> => {
-  const response = await api.get("/accounts/me/");
+  const response = await axios.get("/api/accounts/me/");
   return response.data;
 };

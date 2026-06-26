@@ -1,111 +1,63 @@
-import React from "react";
-import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
+docker compose exec -T frontend sh -c "cat <<EOF > src/App.tsx
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
+import { Layout, Menu } from 'antd';
+import { 
+  DashboardOutlined, 
+  InboxOutlined, 
+  FormOutlined, 
+  FileTextOutlined, 
+  BarChartOutlined, 
+  UserOutlined 
+} from '@ant-design/icons';
+import 'antd/dist/reset.css'; // ایمپورت استایل‌های آنت دیزاین
 
-const pageStyle: React.CSSProperties = {
-  padding: "24px",
-  direction: "rtl",
-  fontFamily: "Tahoma, Arial, sans-serif",
-};
+// Import Pages
+import MyRequests from './pages/MyRequests';
+import FormsList from './pages/FormsList';
+import Reports from './pages/Reports';
 
-const cardStyle: React.CSSProperties = {
-  background: "#ffffff",
-  padding: "24px",
-  borderRadius: "8px",
-  boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
-};
-
-const Dashboard: React.FC = () => {
-  return (
-    <div style={pageStyle}>
-      <div style={cardStyle}>
-        <h1>داشبورد</h1>
-        <p>اگر این صفحه را می‌بینید، یعنی React و Vite دوباره سالم بالا آمده‌اند.</p>
-
-        <Link to="/inbox">
-          <button
-            style={{
-              backgroundColor: "#3498db",
-              color: "#fff",
-              border: "none",
-              padding: "10px 16px",
-              borderRadius: "4px",
-              cursor: "pointer",
-            }}
-          >
-            برو به کارتابل
-          </button>
-        </Link>
-      </div>
-    </div>
-  );
-};
-
-const Inbox: React.FC = () => {
-  return (
-    <div style={pageStyle}>
-      <div style={cardStyle}>
-        <h1>کارتابل ورودی</h1>
-        <p>اگر این صفحه را می‌بینید، یعنی Router درست کار می‌کند.</p>
-
-        <Link to="/">
-          <button
-            style={{
-              backgroundColor: "#2c3e50",
-              color: "#fff",
-              border: "none",
-              padding: "10px 16px",
-              borderRadius: "4px",
-              cursor: "pointer",
-            }}
-          >
-            برگشت به داشبورد
-          </button>
-        </Link>
-      </div>
-    </div>
-  );
-};
+const { Header, Content } = Layout;
 
 const App: React.FC = () => {
   return (
     <Router>
-      <div
-        style={{
-          minHeight: "100vh",
-          backgroundColor: "#f4f7f6",
-          direction: "rtl",
-          fontFamily: "Tahoma, Arial, sans-serif",
-        }}
-      >
-        <nav
-          style={{
-            padding: "12px 24px",
-            backgroundColor: "#2c3e50",
-            color: "#ffffff",
-            display: "flex",
-            gap: "16px",
-            alignItems: "center",
-          }}
-        >
-          <strong>سامانه IRID</strong>
-
-          <Link to="/" style={{ color: "#ffffff", textDecoration: "none" }}>
-            داشبورد
-          </Link>
-
-          <Link to="/inbox" style={{ color: "#ffffff", textDecoration: "none" }}>
-            کارتابل
-          </Link>
-        </nav>
-
-        <Routes>
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/inbox" element={<Inbox />} />
-        </Routes>
-      </div>
+      <Layout style={{ minHeight: '100vh', direction: 'rtl' }}>
+        <Header style={{ display: 'flex', alignItems: 'center', background: '#001529', padding: '0 20px' }}>
+          <div style={{ color: 'white', fontSize: '1.2rem', fontWeight: 'bold', marginLeft: '40px' }}>
+            سامانه IRID
+          </div>
+          <Menu
+            theme=\"dark\"
+            mode=\"horizontal\"
+            defaultSelectedKeys={['1']}
+            style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'row' }}
+          >
+            <Menu.Item key=\"1\" icon={<DashboardOutlined />}><Link to=\"/\">داشبورد</Link></Menu.Item>
+            <Menu.Item key=\"2\" icon={<FileTextOutlined />}><Link to=\"/my-requests\">درخواست‌های من</Link></Menu.Item>
+            <Menu.Item key=\"3\" icon={<InboxOutlined />}><Link to=\"/inbox\">کارتابل</Link></Menu.Item>
+            <Menu.Item key=\"4\" icon={<FormOutlined />}><Link to=\"/forms\">فرم‌های من</Link></Menu.Item>
+            <Menu.Item key=\"5\" icon={<BarChartOutlined />}><Link to=\"/reports\">گزارشات</Link></Menu.Item>
+            <Menu.Item key=\"6\" icon={<UserOutlined />}><Link to=\"/profile\">پروفایل</Link></Menu.Item>
+          </Menu>
+        </Header>
+        
+        <Content style={{ padding: '24px', background: '#f5f5f5' }}>
+          <div style={{ background: '#fff', padding: '24px', minHeight: '80vh', borderRadius: '8px' }}>
+            <Routes>
+              <Route path=\"/\" element={<div><h1>خوش آمدید</h1><p>به پنل مدیریت سامانه IRID خوش آمدید.</p></div>} />
+              <Route path=\"/my-requests\" element={<MyRequests />} />
+              <Route path=\"/forms\" element={<FormsList />} />
+              <Route path=\"/reports\" element={<Reports />} />
+              <Route path=\"/inbox\" element={<div><h1>کارتابل</h1><p>لیست کارهای در انتظار تایید.</p></div>} />
+              <Route path=\"/profile\" element={<div><h1>پروفایل</h1><p>اطلاعات کاربری و سازمانی.</p></div>} />
+            </Routes>
+          </div>
+        </Content>
+      </Layout>
     </Router>
   );
 };
 
 export default App;
-EOF
+EOF"

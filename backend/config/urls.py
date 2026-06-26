@@ -8,6 +8,7 @@ urlpatterns = [
     path('api/auth/', include('apps.accounts.api.urls')),
     path('api/workflow/', include('apps.workflow.api.urls')),
     path('api/correspondence/', include('apps.correspondence.urls')),
+    path('api/forms/', include('apps.forms.urls')),
 ]
 
 if settings.DEBUG:
